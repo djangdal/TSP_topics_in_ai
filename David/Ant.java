@@ -3,18 +3,30 @@ import java.util.*;
 
 class Ant{
 	private Vector<Node> path;
-	private Vector<Integer> costs;
+	private Vector<Float> costs;
 	private boolean[] visited;
 	private int id;
+	private boolean debug = false;
 
 
 	public Ant(int id, Node start, int number_of_nodes){
 		this.id = id;
 		path = new Vector<Node>();
-		costs = new Vector<Integer>();		
+		costs = new Vector<Float>();		
 		visited = new boolean[number_of_nodes];
 		path.add(start);
-		costs.add(0);
+		costs.add(0.0f);
+		visited[start.id()] = true;
+	}
+
+	//Reset parameters and prepare for a new tour
+	public void newRound(){
+		Node start = path.firstElement();
+		path.clear();
+		costs.clear();
+		visited = new boolean[visited.length];
+		path.add(start);
+		costs.add(0.0f);
 		visited[start.id()] = true;
 	}
 
@@ -30,13 +42,16 @@ class Ant{
 
 	//Print information about the ant and what he has visited
 	public void printInfo(){
-		System.out.print("Ant " + id + " is at " + path.lastElement().id() + " and has visited: ");
+		debugPrint("Ant " + id + " is at " + path.lastElement().id() + " and has visited: ");
 		for (int i=0; i<path.size(); i++) {
-				System.out.print(path.elementAt(i).id() + ", ");
+			if(i==path.size())
+				debugPrint(path.elementAt(i).id() + "\n");
+			else
+				debugPrint(path.elementAt(i).id() + ", ");
 		}
-		System.out.println();
 	}
 
+	//Print the solution found
 	public void printSolution(){
 		int cost = 0;
 		System.out.print("Ant " + id + " found a solution:");
@@ -47,26 +62,44 @@ class Ant{
 		System.out.println(", Cost: " + cost);
 	}
 
+	//Return the solution found
+	public Vector<Node> getPath(){
+		return path;
+	}
+
+	//Return the cost for current solution
+	public float getCost(){
+		float cost = 0;
+		for(float c : costs)
+			cost += c;
+		return cost;
+	}
+
 	//Update the ant with provided strategy
-	public void update(int strategy){
+	public void takeTour(int strategy){
+		printInfo();
 		if(strategy == 0)
-			randomStrategy();
+			strategy_randomStrategy();
 		if(strategy == 1)
-			firstNotVisited();
+			strategy_firstNotVisited();
 		if(strategy == 2)
-			antSystem();
+			strategy_antSystem();
 		
 		visited[path.lastElement().id()] = true;
 
 		for (boolean b : visited)
-			if(!b) update(strategy);
-	}
+			if(!b) takeTour(strategy);
+		if(path.lastElement().id() != path.firstElement().id()){
+			printInfo();
+			addStartVertice();
+		}
+	}	
 
-	private void antSystem(){
+	//Go to the city with best transition probability
+	private void strategy_antSystem(){
 		Vector<Vertice> vertices = path.lastElement().vertices();
-		float[] probabilities = calculateProbabilites();
-
 		Vertice bestVertice = vertices.elementAt(0);
+		float[] probabilities = calculateProbabilites();
 		float bestProb = 0;
 		for (int i=0; i<vertices.size(); i++){
 			Vertice current = vertices.elementAt(0);
@@ -76,11 +109,49 @@ class Ant{
 			}
 		}
 
-		System.out.println("Best destination to take is " + bestVertice.destination().id() + " with a cost " + bestVertice.cost());
+		debugPrintln("  Best destination to take is " + bestVertice.destination().id() + " with a cost " + bestVertice.cost());
 		path.add(bestVertice.destination());
+		costs.add(bestVertice.cost());
 	}
 
+	//Go to the first not already visited node
+	private void strategy_firstNotVisited(){
+		for (Vertice v : path.lastElement().vertices()){
+			if(!visited[v.destination().id()] || (v.destination().id() == path.firstElement().id() && path.size() == visited.length)) {
+				path.add(v.destination());
+				costs.add(v.cost());
+				return;
+			}
+		}
+	}
 
+	//Pick a random edge and go to. Dont care if visited or not.
+	private void strategy_randomStrategy(){
+		Vector<Vertice> vertices = path.lastElement().vertices();
+		Random r = new Random();
+		//Take out a random edge and go to its destination
+		int next = r.nextInt(vertices.size());
+		path.add(vertices.elementAt(next).destination());
+		costs.add(vertices.elementAt(next).cost());
+	}
+
+	//Add the vertice that takes you back to the start. If not available add none
+	private void addStartVertice(){
+		debugPrintln(" Adding vertice to go back to start");
+		Vector<Vertice> vertices = path.lastElement().vertices();
+		Node start = path.elementAt(0);
+		for (Vertice v : vertices) {
+			if(v.destination().id() == start.id()){
+				debugPrintln("  Found start with destination " + v.destination().id() + " with cost " + v.cost());
+				path.add(v.destination());
+				costs.add(v.cost());
+				return;
+			}
+		}
+		debugPrintln("  Did not found a vertice to start");
+	}
+
+	//Calculate the probability to go to a each vertice
 	private float[] calculateProbabilites(){
 		Vector<Vertice> vertices = path.lastElement().vertices();
 		Vector<Node> destinations = new Vector<Node>();
@@ -93,7 +164,6 @@ class Ant{
 			if(!visited[v.destination().id()]){
 				destinations.add(v.destination());
 				denominator += Math.pow(v.pheromone(), alpha) * Math.pow(1.0f/v.cost(), beta);
-				// System.out.println("Calculating denominator " + denominator + " with pheromone " + v.pheromone() + " and " + (float)1/v.cost());
 			}
 		}
 
@@ -109,30 +179,15 @@ class Ant{
 			float visibility = 1.0f/current.cost();
 			float nominator = (float)Math.pow(pheromone, alpha) * (float)Math.pow(visibility, beta);
 			probabilities[i] = nominator/denominator;
-			System.out.println("probability for vertice " + i + " with destination " + vertices.elementAt(i).destination().id() + " is " + probabilities[i]);
+			debugPrintln(" probability for vertice " + i + " with destination " + vertices.elementAt(i).destination().id() + " is " + probabilities[i]);
 		}
 		return probabilities;
 	}
 
-
-	//Go to the first no already visited node
-	private void firstNotVisited(){
-		for (Vertice v : path.lastElement().vertices()){
-			if(!visited[v.destination().id()] || (v.destination().id() == path.firstElement().id() && path.size() == visited.length)) {
-				path.add(v.destination());
-				costs.add(v.cost());
-				return;
-			}
-		}
+	private void debugPrint(String s){
+		if(debug) System.out.print(s);
 	}
-
-	//Pick a random edge and go to. Dont care if visited or not.
-	private void randomStrategy(){
-		Vector<Vertice> vertices = path.lastElement().vertices();
-		Random r = new Random();
-		//Take out a random edge and go to its destination
-		int next = r.nextInt(vertices.size());
-		path.add(vertices.elementAt(next).destination());
-		costs.add(vertices.elementAt(next).cost());
+	private void debugPrintln(String s){
+		if(debug) System.out.println(s);
 	}
 }

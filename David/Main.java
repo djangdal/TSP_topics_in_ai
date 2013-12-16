@@ -5,10 +5,12 @@ public class Main{
 	
 	public static void main(String[] args) {
 		int number_of_nodes = 6;
-		int number_of_ants = 1;
-		int number_of_episodes = 1;
+		int number_of_ants = number_of_nodes;
+		int number_of_episodes = 4;
 		int strategy = 2;
-		int delay = 100;
+
+		float bestCost = -1;
+		Vector<Node> bestPath = new Vector<Node>();
 
 		Node[] nodes = new Node[number_of_nodes];
 		Ant[] ants = new Ant[number_of_ants];
@@ -46,24 +48,48 @@ public class Main{
 		}
 
 		//Run the loop number_of_nodes times, each city and back to start
-		for (int i=0; i<number_of_episodes; i++) {
-			// System.out.println("\n------- new round " + i + " -------");
+		for (int t=0; t<number_of_episodes; t++) {
+			System.out.println("\n------- new episode " + t + " -------");
+			for (Node n : nodes) {
+				n.print();
+			}
+			//Compute a new tour for each ant and print the solution
 			for (Ant a : ants) {
-				a.update(strategy);
-				a.printInfo();
+				a.newRound();
+				a.takeTour(strategy);
+				if(a.done())
+					a.printSolution();
+				else
+					System.out.println("Ant didnt find a solution");
+			}
+
+			//Check if any ant has found a better solution and store it
+			for (Ant a : ants) {
+				if(a.done()){
+					if(a.getCost() < bestCost || bestCost == -1){
+						bestCost = a.getCost();
+						bestPath = a.getPath();
+					}
+				}
+			}
+			printSolution(bestPath, bestCost);
+
+
+			//Update the pheromone for all edges (i, j)
+			for(int i=0; i<nodes.length; i++){
+				for (int j=0; j<nodes.length; j++) {
+					Node n = nodes[i];
+					n.updatePheromone(nodes[j], ants, bestPath, bestCost);
+				}
 			}
 		}
+	}
 
-		//Check if anyone has a solution
-		boolean solution = false;
-		for (Ant a : ants) {
-			if(a.done()){
-				a.printSolution();
-				return;
-			}
+	private static void printSolution(Vector<Node> path, float cost){
+		System.out.print("Best solution found so far: ");
+		for (Node n : path) {
+			System.out.print(" " + n.id());
 		}
-
-		if(!solution)
-			System.out.println("\nNo solution was found...\n");
+		System.out.println(", Cost: " + cost);
 	}
 }
