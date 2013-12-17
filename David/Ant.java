@@ -7,9 +7,11 @@ class Ant{
 	private boolean[] visited;
 	private int id;
 	private boolean debug = false;
+	private float alpha;
+	private float beta;
 
 
-	public Ant(int id, Node start, int number_of_nodes){
+	public Ant(int id, Node start, int number_of_nodes, float a, float b){
 		this.id = id;
 		path = new Vector<Node>();
 		costs = new Vector<Float>();		
@@ -17,6 +19,8 @@ class Ant{
 		path.add(start);
 		costs.add(0.0f);
 		visited[start.id()] = true;
+		alpha = a;
+		beta = b;
 	}
 
 	//Reset parameters and prepare for a new tour
@@ -98,20 +102,33 @@ class Ant{
 	//Go to the city with best transition probability
 	private void strategy_antSystem(){
 		Vector<Vertice> vertices = path.lastElement().vertices();
-		Vertice bestVertice = vertices.elementAt(0);
+		Vertice chosenVertice = vertices.elementAt(0);
 		float[] probabilities = calculateProbabilites();
-		float bestProb = 0;
-		for (int i=0; i<vertices.size(); i++){
-			Vertice current = vertices.elementAt(0);
-			if(probabilities[i] > bestProb){
-				bestProb = probabilities[i];
-				bestVertice = vertices.elementAt(i);
+
+		Random r = new Random();
+		float p = r.nextFloat();
+		float start=0, end=0;
+		for (int i=0; i<vertices.size(); i++) {
+			end += probabilities[i];
+			if(p >= start && p <= end){
+				chosenVertice = vertices.elementAt(i);
+				break;
 			}
+			start += probabilities[i];
 		}
 
-		debugPrintln("  Best destination to take is " + bestVertice.destination().id() + " with a cost " + bestVertice.cost());
-		path.add(bestVertice.destination());
-		costs.add(bestVertice.cost());
+		// float bestProb = 0;
+		// for (int i=0; i<vertices.size(); i++){
+		// 	Vertice current = vertices.elementAt(0);
+		// 	if(probabilities[i] > bestProb){
+		// 		bestProb = probabilities[i];
+		// 		bestVertice = vertices.elementAt(i);
+		// 	}
+		// }
+
+		debugPrintln("  Chosen destination to take is " + chosenVertice.destination().id() + " with a cost " + chosenVertice.cost());
+		path.add(chosenVertice.destination());
+		costs.add(chosenVertice.cost());
 	}
 
 	//Go to the first not already visited node
@@ -156,8 +173,6 @@ class Ant{
 		Vector<Vertice> vertices = path.lastElement().vertices();
 		Vector<Node> destinations = new Vector<Node>();
 
-		float alpha = 1;
-		float beta = 5;
 		float denominator = 0;
 		//Take out all the cities not visited and calculate the denominator
 		for (Vertice v : vertices) {

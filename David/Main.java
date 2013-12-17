@@ -4,17 +4,19 @@ import java.io.*;
 public class Main{
 	
 	public static void main(String[] args) {
-		int number_of_nodes = 6;
-		int number_of_ants = number_of_nodes;
-		int number_of_episodes = 4;
+		int number_of_nodes = 10;
+		int number_of_ants = 10;
+		int number_of_episodes = 30;
 		int strategy = 2;
+		float alpha = 0.1f;
+		float beta = 5.0f;
 
 		float bestCost = -1;
 		Vector<Node> bestPath = new Vector<Node>();
 
 		Node[] nodes = new Node[number_of_nodes];
 		Ant[] ants = new Ant[number_of_ants];
-		String file = "tests/six.txt";	
+		String file = "tests/ten.txt";	
 
 		//Create all the nodes needed
 		for(int i=0; i<nodes.length; i++){
@@ -37,22 +39,22 @@ public class Main{
 
 		//Print all the nodes and connections
 		for (Node n : nodes) {
-			n.print();
+			// n.print();
 		}
 
 		//Create the ants with ID and random starting node
 		Random r = new Random();
 		for (int i=0; i<number_of_ants; i++) {
-			ants[i] = new Ant(i, nodes[r.nextInt(number_of_nodes)], number_of_nodes);
-			ants[i].printInfo();
+			ants[i] = new Ant(i, nodes[r.nextInt(number_of_nodes)], number_of_nodes, alpha, beta);
+			// ants[i].printInfo();
 		}
 
 		//Run the loop number_of_nodes times, each city and back to start
 		for (int t=0; t<number_of_episodes; t++) {
 			System.out.println("\n------- new episode " + t + " -------");
-			for (Node n : nodes) {
-				n.print();
-			}
+			// for (Node n : nodes) {
+			// 	n.print();
+			// }
 			//Compute a new tour for each ant and print the solution
 			for (Ant a : ants) {
 				a.newRound();
@@ -72,7 +74,7 @@ public class Main{
 					}
 				}
 			}
-			printSolution(bestPath, bestCost);
+			// printSolution(bestPath, bestCost);
 
 
 			//Update the pheromone for all edges (i, j)
@@ -83,6 +85,7 @@ public class Main{
 				}
 			}
 		}
+		printSolution(bestPath, bestCost);
 	}
 
 	private static void printSolution(Vector<Node> path, float cost){
