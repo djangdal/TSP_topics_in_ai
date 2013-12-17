@@ -4,11 +4,11 @@ import java.io.*;
 public class Main{
 	
 	public static void main(String[] args) {
-		int number_of_nodes = 30;
+		int number_of_nodes = 10;
 		int number_of_ants = 10;
 		int number_of_episodes = 30;
 		int strategy = 2;
-		float alpha = 0.1f;
+		float alpha = 5f;
 		float beta = 5.0f;
 
 		float bestCost = -1;
@@ -16,7 +16,7 @@ public class Main{
 
 		Node[] nodes = new Node[number_of_nodes];
 		Ant[] ants = new Ant[number_of_ants];
-		String file = "tests/thirtySparse.txt";	
+		String file = "tests/ten.txt";	
 
 		//Create all the nodes needed
 		for(int i=0; i<nodes.length; i++){
